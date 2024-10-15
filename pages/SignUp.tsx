@@ -31,7 +31,7 @@ const SignUp: NextPage = () => {
       sessionStorage.setItem('signUpData', JSON.stringify({ email, password, username, fullName }));
 
       // Rediriger vers la page CameraCheck pour le contrôle d'identité
-      Router.push('/camera');
+      Router.push('/Camera');
     }
   };
 
