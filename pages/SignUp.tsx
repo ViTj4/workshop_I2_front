@@ -1,6 +1,7 @@
 import React from 'react';
 import Router from 'next/router';
 import Head from 'next/head';
+import Image from 'next/image'; // Move this up
 import { NextPage } from 'next';
 import useSetFormErrors from '../hooks/useSetFormErrors';
 import InstagramSVG from '../components/svgComps/InstagramSVG';
@@ -36,13 +37,13 @@ const SignUp: NextPage = () => {
   };
 
   return (
-    <div>
+    <div className="relative min-h-[100vh] bg-[#fafafa]">
       <Head>
         <title>Instagram • Sign up</title>
         <meta name="description" content="Instagram Clone" />
         <link rel="icon" href="/instagram.png" />
       </Head>
-      <div className="flex min-h-[100vh] w-full items-center justify-center bg-[#fafafa]">
+      <div className="flex min-h-[100vh] w-full items-center justify-center">
         <div>
           <div className="flex max-w-[350px] flex-col items-center justify-center border border-stone-300 bg-white">
             <div className="h-auto w-[175px] pt-10 pb-5">
@@ -121,6 +122,15 @@ const SignUp: NextPage = () => {
             </div>
           </div>
         </div>
+      </div>
+      {/* Logo Meta centré en bas */}
+      <div className="absolute bottom-5 left-1/2 transform -translate-x-1/2">
+        <Image
+          src="/meta.png"
+          width={80} // Réduction de la taille du logo
+          height={30} // Réduction de la taille du logo
+          alt="Meta logo"
+        />
       </div>
     </div>
   );
