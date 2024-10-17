@@ -1,97 +1,107 @@
 import React, { useEffect, useState } from 'react';
 import Router from 'next/router';
 import Webcam from 'react-webcam';
-import Image from 'next/image'; // Importation du composant Image de Next.js
+import Image from 'next/image';
 import InstagramSVG from './svgComps/InstagramSVG'; // Assurez-vous que le chemin est correct
 
 const CameraCheck: React.FC = () => {
   const webcamRef = React.useRef<Webcam | null>(null);
-  const [image1, setImage1] = useState<string | null>(null); // Image du recto
-  const [image2, setImage2] = useState<string | null>(null); // Image du verso
-  const [image3, setImage3] = useState<string | null>(null); // Image du visage
-  const [capturedCount, setCapturedCount] = useState<number>(0); // Compteur d'images capturées
-  const [isCameraActive, setIsCameraActive] = useState(false); // Pour contrôler l'activation de la caméra
-  const [step, setStep] = useState<number>(0); // Étape de la vérification
-  const [errorMessage, setErrorMessage] = useState<string | null>(null); // Pour afficher un message d'erreur
-
-  const userData = {
-    email: 'vito@hotmail.fr',
-    password: 'Onche123',
-    username: 'VitoZZ',
-    fullName: 'vito scaletta',
-  };
+  const [image1, setImage1] = useState<string | null>(null);
+  const [image2, setImage2] = useState<string | null>(null);
+  const [image3, setImage3] = useState<string | null>(null);
+  const [isCameraActive, setIsCameraActive] = useState(false);
+  const [step, setStep] = useState<number>(0);
+  const [showIdentityImage, setShowIdentityImage] = useState(true);
+  const [showPlusSVG, setShowPlusSVG] = useState(true);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
 
   useEffect(() => {
-    // Récupérer les données du sessionStorage
     const signUpData = sessionStorage.getItem('signUpData');
-    if (signUpData) {
-      console.log('Données utilisateur récupérées : ', JSON.parse(signUpData));
-    } else {
-      // Si les données ne sont pas présentes, rediriger vers la page d'inscription
+    if (!signUpData) {
       Router.push('/signup');
     }
   }, []);
 
-  // Fonction pour envoyer les images à l'API en utilisant FormData
   const uploadImages = async () => {
-    console.log('Envoi des images à l\'API...');
     const formData = new FormData();
-
     if (image1 && image2 && image3) {
-      // Convertir les images en Blob et les ajouter au FormData
       const blob1 = await fetch(image1).then((res) => res.blob());
       const blob2 = await fetch(image2).then((res) => res.blob());
       const blob3 = await fetch(image3).then((res) => res.blob());
 
+      // Ajout des trois images au formulaire
       formData.append('image1', blob1, 'recto.jpg');
       formData.append('image2', blob2, 'verso.jpg');
       formData.append('image3', blob3, 'face.jpg');
 
-      // Envoi des images à l'API
-      const response = await fetch('http://10.60.136.165:5000/compare_faces', {
-        method: 'POST',
-        body: formData,
-      });
+      try {
+        const response = await fetch('http://10.60.136.199:5000/compare_faces', {
+          method: 'POST',
+          body: formData,
+        });
 
-      const data = await response.json();
-      console.log('RESPONSE FROM API', data);
-      console.log('NAME from API', data.name);
+        if (!response.ok) {
+          throw new Error('Erreur dans la réponse de l\'API');
+        }
 
-      // Vérification de la clé same_person
-      if (data.same_person) {
-        console.log('Utilisateur inscrit avec succès', { ...userData, same_person: true });
-        setErrorMessage(null); // Réinitialiser les erreurs
-        Router.push('/welcome');
-      } else {
-        setErrorMessage('Échec de la vérification d\'identité. Les visages ne correspondent pas. Veuillez réessayer.');
+        const data = await response.json();
+        
+        // Vérifier la correspondance des visages et afficher le nom extrait
+        if (data.same_person) {
+          alert(`Correspondance confirmée ! Nom détecté : ${data.name.join(' ')}`);
+          Router.push('/Login');
+        } else {
+          alert('Les visages ne correspondent pas.');
+        }
+      } catch (error) {
+        console.error('Erreur lors de l\'envoi des images :', error);
+        alert('Une erreur est survenue lors de l\'envoi des images.');
       }
+    } else {
+      alert('Veuillez capturer les trois images avant de les envoyer.');
     }
   };
 
-  // Fonction de capture d'image
   const capture = () => {
     const imageSrc = webcamRef.current?.getScreenshot();
-
-    if (step === 1) { // Étape du recto
+    if (step === 1) {
       setImage1(imageSrc || null);
-      console.log('Première image capturée (Recto)');
-      setStep(2); // Passer à l'étape du verso
-    } else if (step === 2) { // Étape du verso
+      setStep(2);
+      setShowPlusSVG(true);
+      setIsCameraActive(false);
+    } else if (step === 2) {
       setImage2(imageSrc || null);
-      console.log('Deuxième image capturée (Verso)');
-      setStep(3); // Passer à l'étape de la photo du visage
-    } else if (step === 3) { // Étape de la photo du visage
+      setStep(3);
+      setShowPlusSVG(true);
+      setIsCameraActive(false);
+    } else if (step === 3) {
       setImage3(imageSrc || null);
-      console.log('Troisième image capturée (Visage)');
-      setCapturedCount(3); // Les trois images sont capturées
-      uploadImages(); // Envoie les trois images à l'API
+      setIsCameraActive(false);
     }
   };
 
-  // Fonction pour commencer la vérification
   const startVerification = () => {
+    setShowIdentityImage(false);
+    setStep(1);
+  };
+
+  const activateCamera = () => {
     setIsCameraActive(true);
-    setStep(1); // Passer à la première étape (Recto de la carte d'identité)
+    setShowPlusSVG(false);
+  };
+
+  const deleteImage = (imageNumber: number) => {
+    if (imageNumber === 1) {
+      setImage1(null);
+      setStep(1);
+    } else if (imageNumber === 2) {
+      setImage2(null);
+      setStep(2);
+    } else if (imageNumber === 3) {
+      setImage3(null);
+      setStep(3);
+    }
+    setIsCameraActive(true);
   };
 
   const getButtonText = () => {
@@ -107,78 +117,137 @@ const CameraCheck: React.FC = () => {
     }
   };
 
+  const toggleDropdown = () => {
+    setDropdownOpen(!dropdownOpen);
+  };
+
+  const canUpload = image1 && image2 && image3;
+
   return (
-    <div className="flex min-h-[100vh] w-full items-center justify-center bg-[#fafafa]">
-      <div className="flex max-w-[700px] flex-col items-center justify-center bg-white p-10"> {/* Suppression de la classe border */}
-        <div className="mb-10" style={{ width: '250px', height: '40px' }}>
-          <InstagramSVG disableDarkMode={true} white={false} />
-        </div>
-        <h1 className="text-center text-2xl font-semibold text-[#262626] mb-5">Vérification d&apos;identité</h1>
-        
-        {/* Placement de l'image d'identité ici */}
-        <div className="mb-5">
-          <Image
-            src="/identity.png"
-            width={200} 
-            height={300}
-            alt="identity logo"
-          />
+    <div className="relative min-h-[100vh] w-full bg-[#fafafa] flex flex-col">
+      <div className="flex-grow flex flex-col items-center justify-between overflow-auto">
+        <div className="flex flex-col items-center mt-10">
+          <div className="mb-2" style={{ width: '150px', height: '40px' }}>
+            <InstagramSVG />
+          </div>
+          <h1 className="text-center text-2xl font-semibold text-[#262626]">Vérification d&apos;identité</h1>
         </div>
 
-        {/* La caméra s'active seulement après avoir cliqué sur le bouton */}
+        {showIdentityImage ? (
+          <div className="flex flex-col items-center">
+            <Image
+              src="/identity.png"
+              width={200}
+              height={300}
+              alt="identity logo"
+            />
+          </div>
+        ) : (
+          showPlusSVG && (
+            <div
+              className="flex flex-col items-center cursor-pointer mb-12"
+              onClick={activateCamera}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => e.key === 'Enter' && activateCamera()}
+            >
+              <Image src="/plus.svg" alt="Plus SVG" width={100} height={100} />
+              <p className="text-center text-sm text-[#262626] mt-2">Cliquez pour activer la caméra</p>
+            </div>
+          )
+        )}
+
         {isCameraActive && (
-          <div className="mb-12">
+          <div className="flex flex-col items-center mt-5 mb-10">
             <Webcam
               audio={false}
               ref={webcamRef}
               screenshotFormat="image/jpeg"
-              className="w-[1440px] h-[480px] border border-stone-300"
+              className="w-[320px] h-[240px] border border-stone-300"
             />
           </div>
         )}
 
+        {/* Bouton d'action pour capturer */}
         <button
           type="button"
           onClick={step === 0 ? startVerification : capture}
-          className="bg-[#3975EA] w-full rounded-[8px] py-2 text-white text-sm font-semibold"
+          className="bg-[#3975EA] w-[80%] max-w-[400px] rounded-[8px] py-2 text-white text-m font-semibold  "
         >
           {getButtonText()}
         </button>
 
-        {image1 && (
-          <div className="mt-5">
-            <h3 className="text-center text-[#262626] font-semibold">Première image capturée (Recto) :</h3>
-            <Image src={image1} alt="Captured 1" width={300} height={200} className="border border-stone-300 mt-2" />
+        {/* Bouton pour voir les images capturées */}
+        {step > 0 && (
+          <div className="relative mt-5 w-[80%] max-w-[400px]">
+            <button type='button'
+              className="bg-[#3975EA] w-full rounded-[8px] py-2 text-white text-m font-semibold"
+              onClick={toggleDropdown}
+            >
+              Voir les images capturées
+            </button>
+            {dropdownOpen && (
+              <div className="absolute bg-white w-full border border-gray-300 rounded-lg mt-2 shadow-lg max-h-[200px] overflow-y-auto">
+                <ul className="list-none p-2">
+                  {image1 && (
+                    <li className="border-b border-gray-300 py-2">
+                      <Image src={image1} alt="Captured 1" width={100} height={70} className="inline" />
+                      <button type='button'
+                        onClick={() => deleteImage(1)}
+                        className="ml-4 bg-red-500 text-white px-2 py-1 rounded"
+                      >
+                        Supprimer
+                      </button>
+                    </li>
+                  )}
+                  {image2 && (
+                    <li className="border-b border-gray-300 py-2">
+                      <Image src={image2} alt="Captured 2" width={100} height={70} className="inline" />
+                      <button type='button'
+                        onClick={() => deleteImage(2)}
+                        className="ml-4 bg-red-500 text-white px-2 py-1 rounded"
+                      >
+                        Supprimer
+                      </button>
+                    </li>
+                  )}
+                  {image3 && (
+                    <li className="py-2">
+                      <Image src={image3} alt="Captured 3" width={100} height={70} className="inline" />
+                      <button type='button'
+                        onClick={() => deleteImage(3)}
+                        className="ml-4 bg-red-500 text-white px-2 py-1 rounded"
+                      >
+                        Supprimer
+                      </button>
+                    </li>
+                  )}
+                </ul>
+              </div>
+            )}
           </div>
         )}
 
-        {image2 && (
-          <div className="mt-5">
-            <h3 className="text-center text-[#262626] font-semibold">Deuxième image capturée (Verso) :</h3>
-            <Image src={image2} alt="Captured 2" width={300} height={200} className="border border-stone-300 mt-2" />
-          </div>
+        {canUpload && (
+          <button
+            type="button"
+            onClick={uploadImages}
+            className="bg-green-500 w-[80%] max-w-[400px] rounded-[8px] py-2 text-white text-m font-semibold mt-5 mb-10"
+          >
+            Envoyer les images.
+          </button>
         )}
-
-        {image3 && (
-          <div className="mt-5">
-            <h3 className="text-center text-[#262626] font-semibold">Troisième image capturée (Votre photo) :</h3>
-            <Image src={image3} alt="Captured 3" width={300} height={200} className="border border-stone-300 mt-2" />
-          </div>
-        )}
-
-        {capturedCount === 3 && <p className="mt-5 text-green-600 text-center">Les trois images ont été capturées et envoyées.</p>}
-
-        {errorMessage && <p className="mt-5 text-red-600 text-center">{errorMessage}</p>}
       </div>
 
-      <div className="absolute bottom-5 left-1/2 transform -translate-x-1/2">
+      {/* Pied de page avec le logo Meta */}
+      <footer className="w-full bg-[#fafafa] py-4 flex justify-center">
         <Image
           src="/meta.png"
-          width={65} 
+          width={65}
           height={15}
           alt="Meta logo"
         />
-      </div>
+      </footer>
     </div>
   );
 };
