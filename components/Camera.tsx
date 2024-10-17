@@ -49,7 +49,8 @@ const CameraCheck: React.FC = () => {
         // Vérifier la correspondance des visages et afficher le nom extrait
         if (data.same_person) {
           alert(`Correspondance confirmée ! Nom détecté : ${data.name.join(' ')}`);
-          Router.push('/Login');
+          Router.push('/Validation')
+          // Router.push('/Login');
         } else {
           alert('Les visages ne correspondent pas.');
         }
