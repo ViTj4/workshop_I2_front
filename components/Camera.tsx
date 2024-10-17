@@ -128,7 +128,7 @@ const CameraCheck: React.FC = () => {
       <div className="flex-grow flex flex-col items-center justify-between overflow-auto">
         <div className="flex flex-col items-center mt-10">
           <div className="mb-2" style={{ width: '150px', height: '40px' }}>
-            <InstagramSVG />
+            <InstagramSVG disableDarkMode={false} white={false} />
           </div>
           <h1 className="text-center text-2xl font-semibold text-[#262626]">Vérification d&apos;identité</h1>
         </div>
